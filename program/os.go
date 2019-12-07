@@ -3,6 +3,7 @@ package program
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -12,20 +13,36 @@ type Os interface {
 	Io
 }
 
-var StdOs = osc{
-	Io: &retryingIo{
-		attempts: 3,
-		io: &bufIo{
-			reader:    bufio.NewReader(os.Stdin),
-			writer:    bufio.NewWriter(os.Stdout),
-			inputMsg:  "Input: ",
-			outputMsg: "Output: ",
-		},
-	},
-}
-
 type osc struct {
 	Io
+}
+
+type OsOpt func(o *osc)
+
+func WithIo(i Io) OsOpt {
+	return func(o *osc) {
+		o.Io = i
+	}
+}
+
+func NewOs(opts ...OsOpt) Os {
+	o := osc{
+		Io: RetryingIo(
+			3,
+			BufIo(
+				os.Stdin,
+				os.Stdout,
+				"Input: ",
+				"Output: ",
+			),
+		),
+	}
+
+	for _, opt := range opts {
+		opt(&o)
+	}
+
+	return o
 }
 
 type Io interface {
@@ -33,11 +50,27 @@ type Io interface {
 	Write(int)
 }
 
+type nilIo struct{}
+
+var _ Io = nilIo{}
+
+func (nilIo) Read() int { panic(noData) }
+func (nilIo) Write(int) {}
+
 type bufIo struct {
 	reader    *bufio.Reader
 	writer    *bufio.Writer
 	inputMsg  string
 	outputMsg string
+}
+
+func BufIo(reader io.Reader, writer io.Writer, inputMsg, outputMsg string) Io {
+	return &bufIo{
+		reader:    bufio.NewReader(reader),
+		writer:    bufio.NewWriter(writer),
+		inputMsg:  inputMsg,
+		outputMsg: outputMsg,
+	}
 }
 
 func (bio *bufIo) Read() int {
@@ -82,8 +115,15 @@ type retryingIo struct {
 	io       Io
 }
 
-var noRead = fmt.Errorf("No read")
-var noWrite = fmt.Errorf("No write")
+func RetryingIo(attempts int, io Io) Io {
+	if io == nil {
+		io = nilIo{}
+	}
+	return &retryingIo{
+		attempts: attempts,
+		io:       io,
+	}
+}
 
 func (rio *retryingIo) tryRead() (i int, err error) {
 	defer func() {
@@ -144,4 +184,46 @@ func (rio *retryingIo) Write(i int) {
 	}
 
 	return
+}
+
+type echoIo struct {
+	buffer []int
+}
+
+func EchoIo(initial ...int) Io {
+	return &echoIo{
+		buffer: initial,
+	}
+}
+
+func (eio *echoIo) Read() int {
+	if len(eio.buffer) == 0 {
+		panic(noData)
+	}
+
+	i := eio.buffer[0]
+	eio.buffer = eio.buffer[1:]
+	return i
+}
+
+func (eio *echoIo) Write(i int) {
+	eio.buffer = append(eio.buffer, i)
+}
+
+type chanIo struct {
+	ch chan int
+}
+
+func ChanIo(ch chan int) Io {
+	return chanIo{
+		ch: ch,
+	}
+}
+
+func (cio chanIo) Read() int {
+	return <-cio.ch
+}
+
+func (cio chanIo) Write(i int) {
+	cio.ch <- i
 }

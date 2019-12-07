@@ -11,12 +11,38 @@ type Program struct {
 	os           Os
 }
 
-func New(intcode ...int) *Program {
-	return &Program{
-		intcode:      NewIntcode(intcode...),
-		instructions: StdInstructions,
-		os:           StdOs,
+type ProgramOpt func(p *Program)
+
+func WithIntcode(intcode *Intcode) ProgramOpt {
+	return func(p *Program) {
+		p.intcode = intcode
 	}
+}
+
+func WithInstructions(instructions map[int]Op) ProgramOpt {
+	return func(p *Program) {
+		p.instructions = instructions
+	}
+}
+
+func WithOs(os Os) ProgramOpt {
+	return func(p *Program) {
+		p.os = os
+	}
+}
+
+func New(opts ...ProgramOpt) *Program {
+	p := &Program{
+		intcode:      NewIntcode(99),
+		instructions: StdInstructions,
+		os:           NewOs(),
+	}
+
+	for _, opt := range opts {
+		opt(p)
+	}
+
+	return p
 }
 
 func (p *Program) Get(index int) int {

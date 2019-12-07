@@ -43,3 +43,7 @@ func (i Halted) Error() string {
 }
 
 var NotImplemented = fmt.Errorf("Not implemented")
+
+var noRead = fmt.Errorf("No read")
+var noWrite = fmt.Errorf("No write")
+var noData = fmt.Errorf("No data")
