@@ -227,3 +227,56 @@ func (cio chanIo) Read() int {
 func (cio chanIo) Write(i int) {
 	cio.ch <- i
 }
+
+type chainIo struct {
+	inch <-chan int
+	ouch chan<- int
+}
+
+func ChainIo(input <-chan int, output chan<- int) Io {
+	return &chainIo{
+		inch: input,
+		ouch: output,
+	}
+}
+
+func (cio *chainIo) Read() int {
+	return <-cio.inch
+}
+
+func (cio *chainIo) Write(i int) {
+	cio.ouch <- i
+}
+
+type verboseIo struct {
+	io    Io
+	extra string
+}
+
+func VerboseIo(io Io, extra map[string]interface{}) Io {
+	if io == nil {
+		io = nilIo{}
+	}
+
+	fields := []string{}
+	for k, v := range extra {
+		fields = append(fields, fmt.Sprintf("%s: %v", k, v))
+	}
+	x := strings.Join(fields, ",")
+
+	return &verboseIo{
+		io:    io,
+		extra: x,
+	}
+}
+
+func (vio *verboseIo) Read() int {
+	i := vio.io.Read()
+	fmt.Printf("Read(%s): %d\n", vio.extra, i)
+	return i
+}
+
+func (vio *verboseIo) Write(i int) {
+	fmt.Printf("Write(%s): %d\n", vio.extra, i)
+	vio.io.Write(i)
+}
