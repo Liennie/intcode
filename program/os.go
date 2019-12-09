@@ -46,16 +46,16 @@ func NewOs(opts ...OsOpt) Os {
 }
 
 type Io interface {
-	Read() int
-	Write(int)
+	Read() int64
+	Write(int64)
 }
 
 type nilIo struct{}
 
 var _ Io = nilIo{}
 
-func (nilIo) Read() int { panic(noData) }
-func (nilIo) Write(int) {}
+func (nilIo) Read() int64 { panic(noData) }
+func (nilIo) Write(int64) {}
 
 type bufIo struct {
 	reader    *bufio.Reader
@@ -73,7 +73,7 @@ func BufIo(reader io.Reader, writer io.Writer, inputMsg, outputMsg string) Io {
 	}
 }
 
-func (bio *bufIo) Read() int {
+func (bio *bufIo) Read() int64 {
 	_, err := bio.writer.WriteString(bio.inputMsg)
 	if err != nil {
 		panic(fmt.Errorf("Error writing message: %w", err))
@@ -90,7 +90,7 @@ func (bio *bufIo) Read() int {
 
 	in = strings.TrimSpace(in)
 
-	i, err := strconv.Atoi(in)
+	i, err := strconv.ParseInt(in, 10, 64)
 	if err != nil {
 		panic(fmt.Errorf("Input must be a single number: %w", err))
 	}
@@ -98,7 +98,7 @@ func (bio *bufIo) Read() int {
 	return i
 }
 
-func (bio *bufIo) Write(i int) {
+func (bio *bufIo) Write(i int64) {
 	_, err := bio.writer.WriteString(fmt.Sprintf("%s%d\n", bio.outputMsg, i))
 	if err != nil {
 		panic(fmt.Errorf("Error writing output: %w", err))
@@ -125,7 +125,7 @@ func RetryingIo(attempts int, io Io) Io {
 	}
 }
 
-func (rio *retryingIo) tryRead() (i int, err error) {
+func (rio *retryingIo) tryRead() (i int64, err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			if e, ok := e.(error); ok {
@@ -139,7 +139,7 @@ func (rio *retryingIo) tryRead() (i int, err error) {
 	return rio.io.Read(), nil
 }
 
-func (rio *retryingIo) Read() (i int) {
+func (rio *retryingIo) Read() (i int64) {
 	err := noRead
 	for attempt := 0; err != nil && attempt < rio.attempts; attempt++ {
 		i, err = rio.tryRead()
@@ -155,7 +155,7 @@ func (rio *retryingIo) Read() (i int) {
 	return
 }
 
-func (rio *retryingIo) tryWrite(i int) (err error) {
+func (rio *retryingIo) tryWrite(i int64) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			if e, ok := e.(error); ok {
@@ -170,7 +170,7 @@ func (rio *retryingIo) tryWrite(i int) (err error) {
 	return nil
 }
 
-func (rio *retryingIo) Write(i int) {
+func (rio *retryingIo) Write(i int64) {
 	err := noWrite
 	for attempt := 0; err != nil && attempt < rio.attempts; attempt++ {
 		err = rio.tryWrite(i)
@@ -187,16 +187,16 @@ func (rio *retryingIo) Write(i int) {
 }
 
 type echoIo struct {
-	buffer []int
+	buffer []int64
 }
 
-func EchoIo(initial ...int) Io {
+func EchoIo(initial ...int64) Io {
 	return &echoIo{
 		buffer: initial,
 	}
 }
 
-func (eio *echoIo) Read() int {
+func (eio *echoIo) Read() int64 {
 	if len(eio.buffer) == 0 {
 		panic(noData)
 	}
@@ -206,45 +206,45 @@ func (eio *echoIo) Read() int {
 	return i
 }
 
-func (eio *echoIo) Write(i int) {
+func (eio *echoIo) Write(i int64) {
 	eio.buffer = append(eio.buffer, i)
 }
 
 type chanIo struct {
-	ch chan int
+	ch chan int64
 }
 
-func ChanIo(ch chan int) Io {
+func ChanIo(ch chan int64) Io {
 	return chanIo{
 		ch: ch,
 	}
 }
 
-func (cio chanIo) Read() int {
+func (cio chanIo) Read() int64 {
 	return <-cio.ch
 }
 
-func (cio chanIo) Write(i int) {
+func (cio chanIo) Write(i int64) {
 	cio.ch <- i
 }
 
 type chainIo struct {
-	inch <-chan int
-	ouch chan<- int
+	inch <-chan int64
+	ouch chan<- int64
 }
 
-func ChainIo(input <-chan int, output chan<- int) Io {
+func ChainIo(input <-chan int64, output chan<- int64) Io {
 	return &chainIo{
 		inch: input,
 		ouch: output,
 	}
 }
 
-func (cio *chainIo) Read() int {
+func (cio *chainIo) Read() int64 {
 	return <-cio.inch
 }
 
-func (cio *chainIo) Write(i int) {
+func (cio *chainIo) Write(i int64) {
 	cio.ouch <- i
 }
 
@@ -270,13 +270,13 @@ func VerboseIo(io Io, extra map[string]interface{}) Io {
 	}
 }
 
-func (vio *verboseIo) Read() int {
+func (vio *verboseIo) Read() int64 {
 	i := vio.io.Read()
 	fmt.Printf("Read(%s): %d\n", vio.extra, i)
 	return i
 }
 
-func (vio *verboseIo) Write(i int) {
+func (vio *verboseIo) Write(i int64) {
 	fmt.Printf("Write(%s): %d\n", vio.extra, i)
 	vio.io.Write(i)
 }

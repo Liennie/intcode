@@ -45,7 +45,7 @@ func New(opts ...ProgramOpt) *Program {
 	return p
 }
 
-func (p *Program) Get(index int) int {
+func (p *Program) Get(index int) int64 {
 	return p.intcode.GetImmediate(index)
 }
 

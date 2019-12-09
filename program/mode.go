@@ -5,9 +5,10 @@ type Mode int
 const (
 	Indirect  Mode = 0
 	Immediate Mode = 1
+	Relative  Mode = 2
 )
 
-func modes(op int, count int) []Mode {
+func modes(op int64, count int) []Mode {
 	op /= 100
 
 	res := make([]Mode, count)
@@ -20,6 +21,6 @@ func modes(op int, count int) []Mode {
 	return res
 }
 
-func opCode(op int) int {
-	return op % 100
+func opCode(op int64) int {
+	return int(op % 100)
 }
