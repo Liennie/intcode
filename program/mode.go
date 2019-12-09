@@ -21,6 +21,6 @@ func modes(op int64, count int) []Mode {
 	return res
 }
 
-func opCode(op int64) int {
-	return int(op % 100)
+func opCode(op int64) int64 {
+	return op % 100
 }

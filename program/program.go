@@ -6,8 +6,8 @@ import (
 
 type Program struct {
 	intcode      *Intcode
-	index        int
-	instructions map[int]Op
+	index        int64
+	instructions map[int64]Op
 	os           Os
 }
 
@@ -19,7 +19,7 @@ func WithIntcode(intcode *Intcode) ProgramOpt {
 	}
 }
 
-func WithInstructions(instructions map[int]Op) ProgramOpt {
+func WithInstructions(instructions map[int64]Op) ProgramOpt {
 	return func(p *Program) {
 		p.instructions = instructions
 	}
@@ -45,7 +45,7 @@ func New(opts ...ProgramOpt) *Program {
 	return p
 }
 
-func (p *Program) Get(index int) int64 {
+func (p *Program) Get(index int64) int64 {
 	return p.intcode.GetImmediate(index)
 }
 

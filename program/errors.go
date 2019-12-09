@@ -12,15 +12,15 @@ var (
 	_ error = NotImplemented
 )
 
-type NegativeIndex int
+type NegativeIndex int64
 
 func (i NegativeIndex) Error() string {
-	return fmt.Sprint("Negative index (%d)", int(i))
+	return fmt.Sprint("Negative index (%d)", int64(i))
 }
 
 type InvalidOpCode struct {
-	opCode int
-	index  int
+	opCode int64
+	index  int64
 }
 
 func (i InvalidOpCode) Error() string {
@@ -29,7 +29,7 @@ func (i InvalidOpCode) Error() string {
 
 type InvalidMode struct {
 	mode  Mode
-	index int
+	index int64
 }
 
 func (i InvalidMode) Error() string {

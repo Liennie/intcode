@@ -8,7 +8,7 @@ import (
 
 type Intcode struct {
 	code []int64
-	base int
+	base int64
 }
 
 func NewIntcode(intcode ...int64) *Intcode {
@@ -18,27 +18,27 @@ func NewIntcode(intcode ...int64) *Intcode {
 	return i
 }
 
-func (c *Intcode) GetImmediate(index int) int64 {
+func (c *Intcode) GetImmediate(index int64) int64 {
 	if index < 0 {
 		panic(NegativeIndex(index))
 	}
 
-	if index >= len(c.code) {
+	if index >= int64(len(c.code)) {
 		return 0
 	}
 
 	return c.code[index]
 }
 
-func (c *Intcode) GetIndirect(index int) int64 {
-	return c.GetImmediate(int(c.GetImmediate(index)))
+func (c *Intcode) GetIndirect(index int64) int64 {
+	return c.GetImmediate(c.GetImmediate(index))
 }
 
-func (c *Intcode) GetRelative(index int) int64 {
-	return c.GetImmediate(int(c.GetImmediate(index)) + c.base)
+func (c *Intcode) GetRelative(index int64) int64 {
+	return c.GetImmediate(c.GetImmediate(index) + c.base)
 }
 
-func (c *Intcode) Get(mode Mode, index int) int64 {
+func (c *Intcode) Get(mode Mode, index int64) int64 {
 	switch mode {
 	case Indirect:
 		return c.GetIndirect(index)
@@ -51,27 +51,27 @@ func (c *Intcode) Get(mode Mode, index int) int64 {
 	}
 }
 
-func (c *Intcode) SetImmediate(index int, i int64) {
+func (c *Intcode) SetImmediate(index, i int64) {
 	if index < 0 {
 		panic(NegativeIndex(index))
 	}
 
-	if index >= len(c.code) {
-		c.code = append(c.code, make([]int64, index-len(c.code)+1)...)
+	if index >= int64(len(c.code)) {
+		c.code = append(c.code, make([]int64, index-int64(len(c.code))+1)...)
 	}
 
 	c.code[index] = i
 }
 
-func (c *Intcode) SetIndirect(index int, i int64) {
-	c.SetImmediate(int(c.GetImmediate(index)), i)
+func (c *Intcode) SetIndirect(index, i int64) {
+	c.SetImmediate(c.GetImmediate(index), i)
 }
 
-func (c *Intcode) SetRelative(index int, i int64) {
-	c.SetImmediate(int(c.GetImmediate(index))+c.base, i)
+func (c *Intcode) SetRelative(index, i int64) {
+	c.SetImmediate(c.GetImmediate(index)+c.base, i)
 }
 
-func (c *Intcode) Set(mode Mode, index int, i int64) {
+func (c *Intcode) Set(mode Mode, index, i int64) {
 	switch mode {
 	case Indirect:
 		c.SetIndirect(index, i)
@@ -85,11 +85,11 @@ func (c *Intcode) Set(mode Mode, index int, i int64) {
 	}
 }
 
-func (c *Intcode) SetBase(base int) {
+func (c *Intcode) SetBase(base int64) {
 	c.base = base
 }
 
-func (c *Intcode) AdjustBase(base int) {
+func (c *Intcode) AdjustBase(base int64) {
 	c.base += base
 }
 
@@ -107,7 +107,7 @@ func pad(i ...int64) int {
 	return max
 }
 
-func (c *Intcode) StringIndexed(index int) string {
+func (c *Intcode) StringIndexed(index int64) string {
 	cols := 10
 	rows := (len(c.code) + cols - 1) / cols
 
@@ -132,7 +132,7 @@ func (c *Intcode) StringIndexed(index int) string {
 				break
 			}
 
-			if cIndex == index {
+			if cIndex == int(index) {
 				fmt.Fprintf(b, " [%[1]*[2]d]", cPad, c.code[cIndex])
 			} else {
 				fmt.Fprintf(b, "  %[1]*[2]d ", cPad, c.code[cIndex])
