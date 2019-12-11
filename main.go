@@ -36,7 +36,7 @@ func main() {
 
 	dir := Point{0, 1}
 	pos := Point{0, 0}
-	panels := map[Point]Color{}
+	panels := map[Point]Color{pos: White}
 
 	stop := make(chan struct{})
 	done := make(chan struct{})
@@ -86,4 +86,37 @@ func main() {
 	}
 
 	fmt.Println(len(panels))
+
+	var min, max Point
+	first := true
+	for p := range panels {
+		if first || p.x < min.x {
+			min.x = p.x
+		}
+		if first || p.y < min.y {
+			min.y = p.y
+		}
+		if first || p.x > max.x {
+			max.x = p.x
+		}
+		if first || p.y > max.y {
+			max.y = p.y
+		}
+
+		first = false
+	}
+
+	for y := max.y; y >= min.y; y-- {
+		for x := min.x; x <= max.x; x++ {
+			switch panels[Point{x, y}] {
+			case Black:
+				fmt.Print(" ")
+			case White:
+				fmt.Print("#")
+			default:
+				fmt.Print("?")
+			}
+		}
+		fmt.Println()
+	}
 }
